@@ -1,29 +1,32 @@
-import pandas as pd
-import mlflow
+import os
 import dagshub
+import mlflow
+import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
-
-import os
-import dagshub
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
 
-# 1. Inisialisasi koneksi ke DagsHub 
-USERNAME = "juanwistasiregar" 
-REPO_NAME = "Eksperimen_SML_Juan-Wistara"
-
-# Ini akan mengambil token dari GitHub Secrets otomatis
+# Ambil token dari environment variable
 token = os.getenv("MLFLOW_TRACKING_PASSWORD")
 
+# Login ke DagsHub menggunakan token secara manual sebelum init
+from dagshub.auth import add_app_token
+add_app_token(token)
+
+# Sekarang panggil init tanpa parameter token
 dagshub.init(
     repo_owner="juanwistasiregar-debug", 
     repo_name="Workflow-CI", 
-    mlflow=True,
-    token=token
+    mlflow=True
 )
+
+# Pastikan USERNAME dan REPO_NAME terdefinisi untuk baris berikutnya
+USERNAME = "juanwistasiregar-debug"
+REPO_NAME = "Workflow-CI"
+mlflow.set_tracking_uri(f"https://dagshub.com/{USERNAME}/{REPO_NAME}.mlflow")
 mlflow.set_tracking_uri(f"https://dagshub.com/{USERNAME}/{REPO_NAME}.mlflow")
 
 # 2. Memuat Dataset hasil preprocessing
