@@ -4,6 +4,9 @@ import dagshub
 import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
+
+import os
+import dagshub
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
@@ -12,7 +15,15 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, confu
 USERNAME = "juanwistasiregar" 
 REPO_NAME = "Eksperimen_SML_Juan-Wistara"
 
-dagshub.init(repo_owner=USERNAME, repo_name=REPO_NAME, mlflow=True)
+# Ini akan mengambil token dari GitHub Secrets otomatis
+token = os.getenv("MLFLOW_TRACKING_PASSWORD")
+
+dagshub.init(
+    repo_owner="juanwistasiregar-debug", 
+    repo_name="Workflow-CI", 
+    mlflow=True,
+    token=token
+)
 mlflow.set_tracking_uri(f"https://dagshub.com/{USERNAME}/{REPO_NAME}.mlflow")
 
 # 2. Memuat Dataset hasil preprocessing
