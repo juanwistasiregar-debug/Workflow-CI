@@ -62,4 +62,5 @@ jobs:
           docker tag churn-model-image ${{ secrets.DOCKERHUB_USERNAME }}/churn-model:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/churn-model:latest
       - name: Install Dependencies
-      run: pip install pandas scikit-learn seaborn  # <-- Tambahkan seaborn di sini
+          run: pip install pandas scikit-learn seaborn  # <-- Tambahkan seaborn di sini
+
