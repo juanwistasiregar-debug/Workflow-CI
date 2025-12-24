@@ -1,0 +1,13 @@
+name: churn_env
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - mlflow
+  - joblib
+  - dagshub
