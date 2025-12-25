@@ -2,7 +2,7 @@ name: Workflow CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ] 
 
 jobs:
   mlflow_job:
@@ -58,5 +58,6 @@ jobs:
         run: |
           docker tag hotel-model-image ${{ secrets.DOCKERHUB_USERNAME }}/hotel-model:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/hotel-model:latest
+
 
 
