@@ -21,7 +21,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install mlflow dagshub pandas scikit-learn joblib
+          pip install --upgrade pip
+          pip install mlflow dagshub pandas scikit-learn joblib matplotlib seaborn
 
       - name: Run mlflow project
         env:
@@ -58,6 +59,7 @@ jobs:
         run: |
           docker tag churn-model-image ${{ secrets.DOCKERHUB_USERNAME }}/churn-model:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/churn-model:latest
+
 
 
 
