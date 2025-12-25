@@ -91,5 +91,6 @@ with mlflow.start_run(run_name="RF_Tuning_Juan_Wistara"):
         sk_model=model, 
         artifact_path="churn_model", 
         registered_model_name="churn_model"
-
+    )
+    
 print("✅ Berhasil! Silakan cek tab MLflow di DagsHub kamu.")
