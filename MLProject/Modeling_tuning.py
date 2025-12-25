@@ -18,19 +18,19 @@ add_app_token(token)
 
 # Sekarang panggil init tanpa parameter token
 dagshub.init(
-    repo_owner="juanwistasiregar-debug", 
+    repo_owner="juanwistasiregar", 
     repo_name="Workflow-CI", 
     mlflow=True
 )
 
 # Pastikan USERNAME dan REPO_NAME terdefinisi untuk baris berikutnya
-USERNAME = "juanwistasiregar-debug"
+USERNAME = "juanwistasiregar"
 REPO_NAME = "Workflow-CI"
 mlflow.set_tracking_uri(f"https://dagshub.com/{USERNAME}/{REPO_NAME}.mlflow")
 mlflow.set_tracking_uri(f"https://dagshub.com/{USERNAME}/{REPO_NAME}.mlflow")
 
 # 2. Memuat Dataset hasil preprocessing
-file_name = 'churn_preprocessing.csv'
+file_name = "churn_preprocessing.csv"
 
 # Cek apakah file ada di root atau di dalam folder MLProject
 if os.path.exists(file_name):
