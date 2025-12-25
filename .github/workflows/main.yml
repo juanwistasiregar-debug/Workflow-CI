@@ -17,9 +17,9 @@ jobs:
           activate-environment: ml_env
 
       - name: Install dependencies
-        shell: bash -l {0}
         run: |
-          pip install mlflow dagshub pandas scikit-learn joblib seaborn matplotlib
+          pip install --upgrade pip
+          pip install mlflow >=2.6 dagshub pandas scikit-learn joblib seaborn matplotlib
 
       - name: Run mlflow project
         shell: bash -l {0}
@@ -28,3 +28,4 @@ jobs:
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           python MLProject/Modeling_tuning.py
+
