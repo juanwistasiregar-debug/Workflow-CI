@@ -87,6 +87,9 @@ with mlflow.start_run(run_name="RF_Tuning_Juan_Wistara"):
     mlflow.log_artifact(model_file) 
     
     # Simpan model ke MLflow Model Registry
-    mlflow.sklearn.log_model(model, "churn_model")
+    mlflow.sklearn.log_model(
+        sk_model=model, 
+        artifact_path="churn_model", 
+        registered_model_name="churn_model"
 
 print("✅ Berhasil! Silakan cek tab MLflow di DagsHub kamu.")
