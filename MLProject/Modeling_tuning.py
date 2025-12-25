@@ -25,22 +25,14 @@ dagshub.init(
 
 # Pastikan USERNAME dan REPO_NAME terdefinisi untuk baris berikutnya
 USERNAME = "juanwistasiregar"
-REPO_NAME = "Workflow-CI"
-mlflow.set_tracking_uri(f"https://dagshub.com/{USERNAME}/{REPO_NAME}.mlflow")
+REPO_NAME = "Eksperimen_SML_Juan-Wistara"
+
+dagshub.init(repo_owner=USERNAME, repo_name=REPO_NAME, mlflow=True)
+
 mlflow.set_tracking_uri(f"https://dagshub.com/{USERNAME}/{REPO_NAME}.mlflow")
 
 # 2. Memuat Dataset hasil preprocessing
-file_name = "churn_preprocessing.csv"
-
-# Cek apakah file ada di root atau di dalam folder MLProject
-if os.path.exists(file_name):
-    path = file_name
-else:
-    path = os.path.join('MLProject', file_name)
-
-print(f"Memuat data dari: {path}")
-df = pd.read_csv(path)
-# -------------------------
+df = pd.read_csv('Membangun_model/churn_preprocessing.csv')
 X = df.drop('Churn', axis=1)
 y = df['Churn']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
