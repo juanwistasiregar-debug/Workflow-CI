@@ -12,15 +12,15 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, confu
 # 1. Setup DagsHub & MLflow
 token = os.getenv("MLFLOW_TRACKING_PASSWORD")
 USERNAME = "juanwistasiregar"
-# PASTIKAN NAMA REPO DI BAWAH INI SAMA DENGAN DI DAGSHUB
 REPO_NAME = "Eksperimen_SML_Juan-Wistara" 
 
-from dagshub.auth import add_app_token
-if token:
-    add_app_token(token)
+# Cara paling aman untuk GitHub Actions:
+os.environ['MLFLOW_TRACKING_USERNAME'] = USERNAME
+os.environ['MLFLOW_TRACKING_PASSWORD'] = token
 
-dagshub.init(repo_owner=USERNAME, repo_name=REPO_NAME, mlflow=True)
 mlflow.set_tracking_uri(f"https://dagshub.com/{USERNAME}/{REPO_NAME}.mlflow")
+# Sangat penting: Set experiment secara eksplisit di luar start_run
+mlflow.set_experiment("RF_Tuning_Juan_Wistara")
 
 # 2. Memuat Dataset
 # Pastikan path ini benar di struktur folder GitHub kamu
@@ -30,7 +30,7 @@ y = df['Churn']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # 3. Jalankan Eksperimen
-with mlflow.start_run(run_name="RF_Tuning_Juan_Wistara"):
+with mlflow.start_run():
     params = {
         "n_estimators": 100,
         "max_depth": 10,
