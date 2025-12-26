@@ -39,43 +39,16 @@ jobs:
           MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          RUN_ID=$(python -c "
-          import mlflow
-          import os
-          
-          # Setup Tracking
-          mlflow.set_tracking_uri(os.environ['MLFLOW_TRACKING_URI'])
-          
-          # Cari experiment berdasarkan nama atau ambil yang pertama tersedia
-          # DagsHub biasanya otomatis membuat experiment dengan nama repo jika tidak ditentukan
-          all_exps = mlflow.search_experiments()
-          if not all_exps:
-              raise Exception('Tidak ada eksperimen ditemukan di DagsHub!')
-          
-          # Ambil ID experiment terbaru yang aktif
-          exp_id = all_exps[0].experiment_id
-          
-          # Cari run terbaru di experiment tersebut
-          runs = mlflow.search_runs(
-              experiment_ids=[exp_id],
-              max_results=1,
-              order_by=['attribute.start_time DESC']
-          )
-          
-          if runs.empty:
-              raise Exception('Tidak ada Run ditemukan!')
-              
-          print(runs['run_id'][0])
-          ")
+         RUN_ID=$(python -c "import mlflow; import os; mlflow.set_tracking_uri(os.environ['MLFLOW_TRACKING_URI']); exp = mlflow.get_experiment_by_name('RF_Tuning_Juan_Wistara'); print(mlflow.search_runs(experiment_ids=[exp.experiment_id], max_results=1)['run_id'][0])")
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
-          echo "Berhasil mendapatkan RUN_ID: $RUN_ID"
+
       - name: Build Docker Model
         env:
           MLFLOW_TRACKING_URI: https://dagshub.com/${{ secrets.DAGSHUB_USERNAME }}/${{ secrets.DAGSHUB_REPO_NAME }}.mlflow
           MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          # PENTING: Menggunakan /churn_model sesuai dengan artifact_path di Python Anda
+          # Pastikan RUN_ID terisi dari step sebelumnya
           mlflow models build-docker -m "runs:/$RUN_ID/churn_model" -n "churn-model-image" --env-manager local
 
       - name: Log in to Docker Hub
@@ -88,4 +61,5 @@ jobs:
         run: |
           docker tag churn-model-image ${{ secrets.DOCKERHUB_USERNAME }}/churn-model:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/churn-model:latest
+
 
