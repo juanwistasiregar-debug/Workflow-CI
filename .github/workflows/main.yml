@@ -50,6 +50,13 @@ jobs:
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
           GUNICORN_CMD_ARGS: "--timeout 60"
         run: |
+          # 1. Ambil RUN_ID terbaru secara otomatis
+          export 4fed560dbc3d43c1b1137a3866d0fc2c=$(mlflow runs search --experiment-ids 0 --max-results 1 --output csv | tail -n 1 | cut -d, -f1)
+          echo "Menggunakan Run ID: $RUN_ID"
+
+          # 2. Build Docker menggunakan URI runs:/ (Lebih stabil daripada models:/)
+          # Pastikan di script python kamu, artifact_path namanya 'model' atau 'churn_model'
+          mlflow models build-docker -m "runs:/$RUN_ID/model" -n "churn-model-image" --env-manager local
           mlflow models build-docker -m "models:/churn_model/1" -n "churn-model-image" --env-manager local
 
       - name: Log in to Docker Hub
@@ -63,6 +70,7 @@ jobs:
         run: |
           docker tag churn-model-image ${{ secrets.DOCKERHUB_USERNAME }}/churn-model:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/churn-model:latest
+
 
 
 
