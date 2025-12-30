@@ -53,7 +53,7 @@ jobs:
           GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}  # Mengambil kredensial dari GitHub Secrets
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}  # Mengambil kredensial dari GitHub Secrets
         run: |
-          python MLproject/upload_to_gdrive.py
+          python MLProject/upload_to_gdrive.py
 
           
       # Build Docker Model
@@ -77,4 +77,5 @@ jobs:
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/cc:latest
+
 
