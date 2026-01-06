@@ -56,10 +56,10 @@ jobs:
           echo "All dependencies are ready."
 
      - name: Upload to GitHub Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: mlruns-backup
-          path: mlruns/
+       uses: actions/upload-artifact@v4
+       with:
+        name: mlruns-backup
+        path: mlruns/
              
       # Build Docker Model
       - name: Build Docker Model
@@ -87,6 +87,7 @@ jobs:
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/churn-project:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/churn-project:v1
+
 
 
 
