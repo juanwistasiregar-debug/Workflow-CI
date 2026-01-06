@@ -1,149 +1,72 @@
-import pandas as pd
-import os
-import matplotlib.pyplot as plt
-import seaborn as sns
 import mlflow
 import mlflow.sklearn
-import joblib
-
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import (accuracy_score, confusion_matrix, roc_auc_score, 
-                             roc_curve, f1_score, precision_score, recall_score)
-
-# Konfigurasi MLflow
-mlflow.set_experiment("Churn_Prediction_Telco")
-
-# Folder output sementara
-os.makedirs('assets', exist_ok=True)
-
-# Path Data (Pastikan file ini ada di folder dataset Anda)
-DATA_PATH = 'WA_Fn-UseC_-Telco-Customer-Churn.csv' 
-
-def run_experiment():
-    print("🚀 Memulai Proses Training untuk Telco Churn...")
-    
-    # 1. Load Data
-    if not os.path.exists(DATA_PATH):
-        print(f"❌ Error: File {DATA_PATH} tidak ditemukan.")
-        return
-
-    df = pd.read_csv(DATA_PATH)
-
-    # --- PREPROCESSING KHUSUS TELCO CHURN ---
-    # Hapus ID karena tidak berguna untuk prediksi
-    if 'customerID' in df.columns:
-        df = df.drop(columns=['customerID'])
-    
-    # Ubah TotalCharges jadi numerik (karena kadang ada spasi kosong)
-    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
-    df = df.dropna(subset=['TotalCharges']) # Hapus baris yang kosong
-
-    # Ubah Target (Churn) jadi numerik: Yes=1, No=0
-    df['Churn'] = df['Churn'].map({'Yes': 1, 'No': 0})
-
-    # Identifikasi kolom numerik dan kategorikal
-    numeric_features = ['tenure', 'MonthlyCharges', 'TotalCharges']
-    categorical_features = df.select_dtypes(include=['object']).columns.tolist()
-
-    # Pisahkan Fitur (X) dan Target (y)
-    X = df.drop(columns=['Churn'])
-    y = df['Churn']
-
-    print(f"✅ Data Siap. Ukuran: {X.shape}")
-
-    # 2. Split Data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-
-    # 3. Preprocessing Pipeline
-    # Gabungkan scaler untuk angka dan encoder untuk teks
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', StandardScaler(), numeric_features),
-            ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
-        ])
-
-    # Gabungkan ke Pipeline Utama
-    full_pipeline = Pipeline([
-        ('preprocessor', preprocessor),
-        ('clf', RandomForestClassifier(random_state=42))
-    ])
-
-    # Skenario Tuning
-    param_grid = {
-        'clf__n_estimators': [100, 200],
-        'clf__max_depth': [10, 20],
-        'clf__min_samples_leaf': [2, 4]
-    }
-
-    active_run = mlflow.active_run()
-    
-    with mlflow.start_run(run_name="RF_Churn_Tuning", nested=(active_run is not None)):
-        print("⚙️ Sedang melakukan GridSearch (Tuning)...")
-        
-        # Grid Search
-        grid = GridSearchCV(full_pipeline, param_grid, cv=3, scoring='f1', verbose=1, n_jobs=-1)
-        grid.fit(X_train, y_train)
-
-        best_model = grid.best_estimator_
-        best_params = grid.best_params_
-        
-        print(f"✅ Tuning Selesai. Best Params: {best_params}")
-
-        # 5. Evaluasi
-        y_pred = best_model.predict(X_test)
-        y_proba = best_model.predict_proba(X_test)[:, 1]
-
-        # Hitung Metrik
-        acc = accuracy_score(y_test, y_pred)
-        auc = roc_auc_score(y_test, y_proba)
-        
-        metrics = {
-            "accuracy": acc,
-            "precision": precision_score(y_test, y_pred),
-            "recall": recall_score(y_test, y_pred),
-            "f1_score": f1_score(y_test, y_pred),
-            "roc_auc": auc
-        }
-        
-        print(f"📊 Hasil Akhir: Accuracy={acc:.4f}, F1-Score={metrics['f1_score']:.4f}")
-
-        # Log Params & Metrics ke MLflow
-        mlflow.log_params(best_params)
-        mlflow.log_metrics(metrics)
-
-        # Log Model
-        mlflow.sklearn.log_model(best_model, "model_churn_final")
-        joblib.dump(best_model, "model_churn.pkl")
-
-        # 1. Confusion Matrix Plot
-        cm = confusion_matrix(y_test, y_pred)
-        plt.figure(figsize=(6, 5))
-        sns.heatmap(cm, annot=True, fmt='d', cmap='RdYlGn')
-        plt.title("Confusion Matrix - Telco Churn")
-        plt.ylabel("Actual Churn"); plt.xlabel("Predicted Churn")
-        cm_path = os.path.join("assets", "confusion_matrix_churn.png")
-        plt.savefig(cm_path, bbox_inches='tight')
-        plt.close()
-        mlflow.log_artifact(cm_path)
-
-        # 2. ROC Curve Plot
-        fpr, tpr, _ = roc_curve(y_test, y_proba)
-        plt.figure(figsize=(6, 5))
-        plt.plot(fpr, tpr, color='darkorange', label=f"AUC = {auc:.3f}")
-        plt.plot([0, 1], [0, 1], color='navy', linestyle='--')
-        plt.title("ROC Curve - Telco Churn")
-        plt.xlabel('False Positive Rate'); plt.ylabel('True Positive Rate')
-        plt.legend(loc="lower right")
-        roc_path = os.path.join("assets", "roc_curve_churn.png")
-        plt.savefig(roc_path, bbox_inches='tight')
-        plt.close()
-        mlflow.log_artifact(roc_path)
-
-        print("✅ Proses Selesai! Logs telah dikirim.")
+from sklearn.model_selection import train_test_split
+import os
+import numpy as np
+import warnings
+import sys
+import dagshub
 
 if __name__ == "__main__":
-    run_experiment()
+    warnings.filterwarnings("ignore")
+    np.random.seed(40)
+
+    # --- 1. SET KONEKSI DAGSHUB (Wajib Tambah Ini) ---
+    USERNAME = "juanwistasiregar"
+    REPO_NAME = "Eksperimen_SML_Juan-Wistara"
+    
+    # Ambil token dari environment variable (GitHub Secrets)
+    token = os.getenv("MLFLOW_TRACKING_PASSWORD")
+    if token:
+        dagshub.auth.add_app_token(token) # Menghindari "Authorization Required"
+    
+    dagshub.init(repo_owner=USERNAME, repo_name=REPO_NAME, mlflow=True)
+    mlflow.set_tracking_uri(f"https://dagshub.com/{USERNAME}/{REPO_NAME}.mlflow")
+    # ------------------------------------------------
+
+    # 2. Load Data
+    # Path otomatis mendeteksi folder tempat script berada
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = sys.argv[3] if len(sys.argv) > 3 else os.path.join(base_dir, "train_pca.csv")
+    
+    if not os.path.exists(file_path):
+        print(f"❌ File tidak ditemukan di: {file_path}")
+        sys.exit(1)
+        
+    data = pd.read_csv(file_path)
+
+    # 3. Split Data
+    X = data.drop("Credit_Score", axis=1)
+    y = data["Credit_Score"]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, test_size=0.2)
+    
+    input_example = X_train.iloc[0:5] # Menggunakan .iloc agar lebih aman
+
+    # 4. Ambil Parameter dari Command Line (atau default)
+    n_estimators = int(sys.argv[1]) if len(sys.argv) > 1 else 505
+    max_depth = int(sys.argv[2]) if len(sys.argv) > 2 else 37
+
+    # 5. Training & Logging
+    with mlflow.start_run(run_name="RF_Credit_Score_Juan"):
+        # Log Parameter
+        mlflow.log_param("n_estimators", n_estimators)
+        mlflow.log_param("max_depth", max_depth)
+        
+        model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth)
+        model.fit(X_train, y_train)
+
+        # Log Model
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            artifact_path="model",
+            input_example=input_example,
+            registered_model_name="RF_Credit_Model"
+        )
+
+        # Log Metrics
+        accuracy = model.score(X_test, y_test)
+        mlflow.log_metric("accuracy", accuracy)
+        
+        print(f"✅ Training Selesai! Accuracy: {accuracy:.4f}")
