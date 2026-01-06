@@ -1,4 +1,4 @@
-name: Workflow_CI
+name: Workflow_CI 
 on:
   push:
     branches: [ main ]
@@ -26,3 +26,4 @@ jobs:
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           python MLProject/Modeling_tuning.py
+
