@@ -1,72 +1,65 @@
-import mlflow
-import mlflow.sklearn
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-import os
-import numpy as np
-import warnings
-import sys
-import dagshub
+name: Workflow CI MLflow
 
-if __name__ == "__main__":
-    warnings.filterwarnings("ignore")
-    np.random.seed(40)
+on:
+  push:
+    branches: [ main ]
 
-    # --- 1. SET KONEKSI DAGSHUB (Wajib Tambah Ini) ---
-    USERNAME = "juanwistasiregar"
-    REPO_NAME = "Eksperimen_SML_Juan-Wistara"
-    
-    # Ambil token dari environment variable (GitHub Secrets)
-    token = os.getenv("MLFLOW_TRACKING_PASSWORD")
-    if token:
-        dagshub.auth.add_app_token(token) # Menghindari "Authorization Required"
-    
-    dagshub.init(repo_owner=USERNAME, repo_name=REPO_NAME, mlflow=True)
-    mlflow.set_tracking_uri(f"https://dagshub.com/{USERNAME}/{REPO_NAME}.mlflow")
-    # ------------------------------------------------
+jobs:
+  mlflow_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    # 2. Load Data
-    # Path otomatis mendeteksi folder tempat script berada
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = sys.argv[3] if len(sys.argv) > 3 else os.path.join(base_dir, "train_pca.csv")
-    
-    if not os.path.exists(file_path):
-        print(f"❌ File tidak ditemukan di: {file_path}")
-        sys.exit(1)
-        
-    data = pd.read_csv(file_path)
+      # Solusi Error: Menggunakan setup-miniconda agar perintah 'activate' dikenali
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          python-version: '3.12.7'
+          activate-environment: ml_env
 
-    # 3. Split Data
-    X = data.drop("Credit_Score", axis=1)
-    y = data["Credit_Score"]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, test_size=0.2)
-    
-    input_example = X_train.iloc[0:5] # Menggunakan .iloc agar lebih aman
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          pip install mlflow dagshub pandas scikit-learn joblib
 
-    # 4. Ambil Parameter dari Command Line (atau default)
-    n_estimators = int(sys.argv[1]) if len(sys.argv) > 1 else 505
-    max_depth = int(sys.argv[2]) if len(sys.argv) > 2 else 37
+      - name: Run mlflow project
+        shell: bash -l {0}
+        env:
+          MLFLOW_TRACKING_URI: https://dagshub.com/${{ secrets.DAGSHUB_USERNAME }}/${{ secrets.DAGSHUB_REPO_NAME }}.mlflow
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          mlflow run MLProject/
 
-    # 5. Training & Logging
-    with mlflow.start_run(run_name="RF_Credit_Score_Juan"):
-        # Log Parameter
-        mlflow.log_param("n_estimators", n_estimators)
-        mlflow.log_param("max_depth", max_depth)
-        
-        model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth)
-        model.fit(X_train, y_train)
+      # Kriteria Skilled: Menyimpan artefak ke GitHub
+      - name: Upload Artifacts to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-model
+          path: mlruns/
 
-        # Log Model
-        mlflow.sklearn.log_model(
-            sk_model=model,
-            artifact_path="model",
-            input_example=input_example,
-            registered_model_name="RF_Credit_Model"
-        )
+      # Kriteria Advance: Membuat Docker Image
+      # Kriteria Advance: Membuat Docker Image
+      - name: Build Docker Model
+        shell: bash -l {0}
+        env:
+          # WAJIB tambahkan ini agar dia mencari model ke DagsHub, bukan lokal!
+          MLFLOW_TRACKING_URI: https://dagshub.com/${{ secrets.DAGSHUB_USERNAME }}/${{ secrets.DAGSHUB_REPO_NAME }}.mlflow
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          mlflow models build-docker -m "models:/churn_model/1" -n "churn-model-image"
 
-        # Log Metrics
-        accuracy = model.score(X_test, y_test)
-        mlflow.log_metric("accuracy", accuracy)
-        
-        print(f"✅ Training Selesai! Accuracy: {accuracy:.4f}")
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Kriteria Advance: Push ke Docker Hub
+      - name: Tag and Push Docker Image
+        run: |
+          docker tag hotel-model-image ${{ secrets.DOCKERHUB_USERNAME }}/churn-model:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/churn-model:latest
